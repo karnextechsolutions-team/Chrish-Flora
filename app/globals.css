@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --flora-gold:       #C9962A;
+  --flora-gold-dark:  #8B6914;
+  --flora-olive:      #BEC96A;
+  --flora-olive-dark: #9AA356;
+  --flora-brown:      #5C4A00;
+  --flora-cream:      #FBF7EE;
+  --flora-cream-dark: #F2EAD8;
+}
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--flora-cream);
+    color: var(--flora-brown);
+  }
+  h1, h2, h3 { font-family: var(--font-cormorant), Georgia, serif; }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-gold-600 text-flora-cream font-sans font-medium tracking-wide
+           px-6 py-3 transition-all duration-200
+           hover:bg-gold-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-outline {
+    @apply border border-gold-600 text-gold-600 font-sans font-medium tracking-wide
+           px-6 py-3 transition-all duration-200
+           hover:bg-gold-600 hover:text-white active:scale-95;
+  }
+  .card {
+    @apply bg-white border border-flora-cream-dark shadow-sm;
+  }
+  .input {
+    @apply w-full border border-olive-300 bg-white px-4 h-12 text-base
+           focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500
+           transition-colors duration-150;
+  }
+  .label {
+    @apply block text-xs font-medium tracking-widest uppercase text-gold-700 mb-1;
+  }
+  .badge-status {
+    @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium font-sans;
+  }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--flora-cream-dark); }
+::-webkit-scrollbar-thumb { background: var(--flora-gold); }
+
+/* Leaflet overrides (loaded dynamically, these just override if present) */
+.leaflet-container { font-family: var(--font-dm-sans), sans-serif; }
+.leaflet-control-zoom a {
+  color: var(--flora-brown) !important;
+  border-color: var(--flora-cream-dark) !important;
+}
+
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent iOS text size adjustment */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Better touch scrolling */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
