@@ -76,8 +76,9 @@ export async function POST(req: NextRequest) {
 
     console.log(`PayHere notify: Order ${order_id} → ${orderStatus}`);
 
-    // If payment confirmed, send SMS alert (fire-and-forget)
+    // If payment confirmed, send SMS alert
     if (status_code === '2') {
+      console.log('[payhere-notify] Payment confirmed — fetching order for SMS...');
       const { data: orderForSMS } = await supabase
         .from('orders')
         .select('*')
@@ -85,8 +86,9 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (orderForSMS) {
-        // Do NOT await — never block the PayHere response
-        sendAdminSMS({
+        console.log('[payhere-notify] Calling sendAdminSMS for PayHere order...');
+        // Await so Netlify function doesn't exit before the HTTP request completes
+        await sendAdminSMS({
           orderId:           orderForSMS.id,
           customerName:      orderForSMS.customer_name,
           customerPhone:     orderForSMS.customer_phone,
@@ -95,7 +97,10 @@ export async function POST(req: NextRequest) {
           paymentMethod:     'PayHere',
           deliveryDate:      orderForSMS.requested_delivery_date || null,
           deliveryTime:      orderForSMS.requested_delivery_time || null,
-        }).catch(() => {}); // Extra safety
+        }).catch(() => {});
+        console.log('[payhere-notify] sendAdminSMS completed.');
+      } else {
+        console.warn('[payhere-notify] ⚠️ Could not fetch order row for SMS.');
       }
     }
 
