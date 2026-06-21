@@ -81,6 +81,9 @@ export interface StoreSettings {
   store_phone: string;
   store_email: string;
   branches: StoreBranch[];
+  cash_on_delivery_enabled?: boolean;
+  online_payment_enabled?: boolean;
+  online_payment_note?: string | null;
   updated_at: string;
 }
 
@@ -108,3 +111,21 @@ export interface ProductReview {
   is_approved: boolean;
   created_at: string;
 }
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  button_text: string;
+  button_link: string;
+  image_url: string | null;
+  bg_color: string;
+  text_color: string;
+  badge_text: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+

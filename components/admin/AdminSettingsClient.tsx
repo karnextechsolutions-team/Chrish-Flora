@@ -4,6 +4,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import type { StoreSettings } from '@/types';
+import { AlertCircle } from 'lucide-react';
 
 const AdminHQMap = dynamic(() => import('@/components/map/AdminHQMap'), { ssr: false });
 
@@ -15,6 +16,8 @@ export default function AdminSettingsClient({ initialSettings }: Props) {
     base_delivery_rate: 300, base_distance_km: 5, rate_per_additional_km: 50,
     store_name: 'Chrish Flora', store_phone: '', store_email: '',
     branches: [] as any[],
+    cash_on_delivery_enabled: true,
+    online_payment_enabled: true,
   };
   const init = initialSettings || defaults;
 
@@ -28,6 +31,8 @@ export default function AdminSettingsClient({ initialSettings }: Props) {
     store_name: init.store_name || 'Chrish Flora',
     store_phone: init.store_phone || '',
     store_email: init.store_email || '',
+    cash_on_delivery_enabled: init.cash_on_delivery_enabled !== false,
+    online_payment_enabled: init.online_payment_enabled !== false,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -137,6 +142,106 @@ export default function AdminSettingsClient({ initialSettings }: Props) {
             <input type="number" className="input tabular" value={form.rate_per_additional_km} onChange={f('rate_per_additional_km')} />
             <p className="text-xs text-gray-400 mt-1">Beyond base distance</p>
           </div>
+        </div>
+      </section>
+
+      {/* Payment Settings Section */}
+      <section className="bg-white border border-gray-100 shadow-sm p-6">
+        <h2 className="font-serif text-xl text-flora-brown mb-2">
+          Payment Settings
+        </h2>
+        <p className="text-sm font-sans text-gray-400 mb-5">
+          Control which payment methods customers can use at checkout.
+        </p>
+        
+        <div className="space-y-4">
+          {/* Cash on Delivery Toggle */}
+          <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-xl">💵</div>
+              <div>
+                <p className="font-sans text-sm font-medium text-flora-brown">
+                  Cash on Delivery
+                </p>
+                <p className="text-xs text-gray-400 font-sans mt-0.5">
+                  Customer pays when order is delivered
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setForm(p => ({ 
+                ...p, 
+                cash_on_delivery_enabled: !p.cash_on_delivery_enabled 
+              }))}
+              className={`w-12 h-6 rounded-full transition-colors relative
+                ${form.cash_on_delivery_enabled 
+                  ? 'bg-gold-600' 
+                  : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform
+                ${form.cash_on_delivery_enabled 
+                  ? 'translate-x-6' 
+                  : 'translate-x-0.5'}`}
+              />
+            </button>
+          </div>
+          
+          {/* Online Payment Toggle */}
+          <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gold-50 rounded-xl flex items-center justify-center text-xl">💳</div>
+              <div>
+                <p className="font-sans text-sm font-medium text-flora-brown">
+                  Online Payment (PayHere)
+                </p>
+                <p className="text-xs text-gray-400 font-sans mt-0.5">
+                  Card, bank transfer, mobile payment
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setForm(p => ({ 
+                ...p, 
+                online_payment_enabled: !p.online_payment_enabled 
+              }))}
+              className={`w-12 h-6 rounded-full transition-colors relative
+                ${form.online_payment_enabled 
+                  ? 'bg-gold-600' 
+                  : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform
+                ${form.online_payment_enabled 
+                  ? 'translate-x-6' 
+                  : 'translate-x-0.5'}`}
+              />
+            </button>
+          </div>
+          
+          {/* Warning if both disabled */}
+          {!form.cash_on_delivery_enabled && !form.online_payment_enabled && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
+              <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+              <p className="text-xs font-sans text-red-600">
+                Warning: At least one payment method must be enabled!
+              </p>
+            </div>
+          )}
+          
+          {/* Accepted cards display */}
+          {form.online_payment_enabled && (
+            <div className="bg-gold-50 border border-gold-100 rounded-xl p-3">
+              <p className="text-xs font-sans text-gold-700 font-medium mb-2">
+                Accepted via PayHere:
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {['VISA', 'Mastercard', 'AMEX', 'eZ Cash', 'mCash', 'FriMi', 'Bank Transfer'].map(method => (
+                  <span key={method} className="text-[10px] bg-white border border-gold-200 text-gold-700 px-2 py-1 rounded-lg font-sans">
+                    {method}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

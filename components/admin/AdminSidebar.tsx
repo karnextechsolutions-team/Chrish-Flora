@@ -5,13 +5,15 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  LayoutDashboard, ShoppingBag, Package, Settings, Store, Monitor, BarChart2, Users, UserCheck, X
+  LayoutDashboard, ShoppingBag, Package, Settings, Store, Monitor, BarChart2, Users, UserCheck, X, Image as ImageIcon, Receipt
 } from 'lucide-react';
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'staff'] },
   { href: '/admin/orders',    icon: ShoppingBag,      label: 'Orders',    roles: ['admin', 'staff'] },
+  { href: '/admin/sales',     icon: Receipt,          label: 'Sales',     roles: ['admin', 'staff'] },
   { href: '/admin/pos',       icon: Monitor,          label: 'POS',       roles: ['admin', 'staff'] },
+  { href: '/admin/banners',   icon: ImageIcon,        label: 'Banners',   roles: ['admin'] },
   { href: '/admin/products',  icon: Package,          label: 'Products',  roles: ['admin'] },
   { href: '/admin/reports',   icon: BarChart2,        label: 'Reports',   roles: ['admin'] },
   { href: '/admin/staff',     icon: Users,            label: 'Staff',     roles: ['admin'] },
@@ -27,6 +29,36 @@ interface Props {
 export default function AdminSidebar({ isOpen, onClose }: Props) {
   const pathname = usePathname();
   const [role, setRole] = useState<string | null>(null);
+  const [todaySalesCount, setTodaySalesCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const fetchTodaySales = async () => {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const { count, error } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', todayStart.toISOString());
+
+      if (!error && count !== null) {
+        setTodaySalesCount(count);
+      }
+    };
+    fetchTodaySales();
+
+    const channel = supabase
+      .channel('sidebar-orders-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+        fetchTodaySales();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -80,9 +112,14 @@ export default function AdminSidebar({ isOpen, onClose }: Props) {
               >
                 <item.icon size={18} className="shrink-0" />
                 <span className="hidden lg:inline">{item.label}</span>
+                {item.label === 'Sales' && todaySalesCount !== null && todaySalesCount > 0 && (
+                  <span className="hidden lg:inline-block ml-auto bg-gold text-flora-brown font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                    {todaySalesCount}
+                  </span>
+                )}
                 {/* Tooltip for Tablet */}
                 <div className="lg:hidden absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-flora-brown border border-white/10 text-white text-xs px-2.5 py-1.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 rounded">
-                  {item.label}
+                  {item.label} {item.label === 'Sales' && todaySalesCount !== null && todaySalesCount > 0 ? `(${todaySalesCount})` : ''}
                 </div>
               </Link>
             );
@@ -142,7 +179,12 @@ export default function AdminSidebar({ isOpen, onClose }: Props) {
                         : 'text-flora-cream/60 hover:bg-white/10 hover:text-flora-cream'}`}
                   >
                     <item.icon size={18} className="shrink-0" />
-                    {item.label}
+                    <span>{item.label}</span>
+                    {item.label === 'Sales' && todaySalesCount !== null && todaySalesCount > 0 && (
+                      <span className="ml-auto bg-gold text-flora-brown font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                        {todaySalesCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
