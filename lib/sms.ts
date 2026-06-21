@@ -66,9 +66,9 @@ export async function sendAdminSMS(
       body: JSON.stringify({
         user_id: userId,
         api_key: apiKey,
+        sender_id: 'NotifyDEMO',
         to: adminPhone,
         message: message,
-        // sender_id removed — causes 400 error when empty
       }),
     });
 
