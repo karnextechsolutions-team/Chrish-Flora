@@ -6,7 +6,18 @@ export default async function AdminOrdersPage() {
   const supabase = await createClient();
   const { data: orders } = await supabase
     .from('orders')
-    .select('*, order_items(*, product:products(*))')
+    .select(`
+      *,
+      order_items (
+        *,
+        product:products(*),
+        order_item_addons (
+          id,
+          addon_name,
+          addon_price
+        )
+      )
+    `)
     .order('created_at', { ascending: false });
 
   return <AdminOrdersClient initialOrders={orders || []} />;

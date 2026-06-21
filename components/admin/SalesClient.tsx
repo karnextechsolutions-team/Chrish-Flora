@@ -34,7 +34,7 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
         // Refetch orders with items and products
         supabase
           .from('orders')
-          .select('*, order_items(*, product:products(name, sku, image_url))')
+          .select('*, order_items(*, product:products(name, sku, image_url), order_item_addons(*))')
           .order('created_at', { ascending: false })
           .then(({ data }) => {
             if (data) setOrders(data);
@@ -242,16 +242,27 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
   // --- Thermal Receipt Printing Helper ---
   const printReceipt = (order: Order) => {
     const cashierName = order.cashier_id ? 'Cashier Staff' : 'Storefront Guest';
-    const itemsListHTML = (order.order_items || []).map(item => `
-      <div class="row">
-        <span class="item-name">${item.product?.name || 'Flower Arrangement'}</span>
-        <span>&times;${item.quantity}</span>
-        <span class="tabular">LKR ${(item.quantity * item.unit_price).toLocaleString()}</span>
-      </div>
-      <div style="color:#666;font-size:9px;margin-bottom:6px">
-        ${item.product?.sku || ''}
-      </div>
-    `).join('');
+    const itemsListHTML = (order.order_items || []).map(item => {
+      const addonLines = (item.order_item_addons || [])
+        .map(oa => `
+          <div class="row" style="padding-left:12px; color:#666; font-size:10px;">
+            <span>↳ ${oa.addon_name}</span>
+            <span class="tabular">+LKR ${Number(oa.addon_price).toLocaleString('en-LK')}</span>
+          </div>
+        `).join('');
+
+      return `
+        <div class="row">
+          <span class="item-name">${item.product?.name || 'Flower Arrangement'}</span>
+          <span>&times;${item.quantity}</span>
+          <span class="tabular">LKR ${(item.quantity * item.unit_price).toLocaleString('en-LK')}</span>
+        </div>
+        <div style="color:#666;font-size:9px;margin-bottom:6px">
+          ${item.product?.sku || ''}
+        </div>
+        ${addonLines}
+      `;
+    }).join('');
 
     const receiptHTML = `
       <!DOCTYPE html>
@@ -328,6 +339,18 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
           <span>Fulfillment:</span>
           <span>${order.fulfillment_method}</span>
         </div>
+        ${order.requested_delivery_date ? `
+        <div class="row">
+          <span>Req. Date:</span>
+          <span class="bold">${order.requested_delivery_date}</span>
+        </div>
+        ` : ''}
+        ${order.requested_delivery_time ? `
+        <div class="row">
+          <span>Req. Time:</span>
+          <span class="bold">${order.requested_delivery_time}</span>
+        </div>
+        ` : ''}
         <div class="row">
           <span>Payment:</span>
           <span>${order.payment_method || 'Online'}</span>
@@ -346,18 +369,18 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
         
         <div class="row">
           <span>Subtotal</span>
-          <span class="tabular">LKR ${order.subtotal.toLocaleString()}</span>
+          <span class="tabular">LKR ${order.subtotal.toLocaleString('en-LK')}</span>
         </div>
         <div class="row">
           <span>Delivery</span>
-          <span class="tabular">LKR ${order.delivery_charge.toLocaleString()}</span>
+          <span class="tabular">LKR ${order.delivery_charge.toLocaleString('en-LK')}</span>
         </div>
         
         <div class="divider"></div>
         
         <div class="row total-row">
           <span>TOTAL</span>
-          <span class="tabular gold font-bold">LKR ${order.total.toLocaleString()}</span>
+          <span class="tabular gold font-bold">LKR ${order.total.toLocaleString('en-LK')}</span>
         </div>
         
         <div class="divider"></div>
@@ -456,8 +479,8 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-sans text-gray-400 uppercase font-semibold tracking-wider">Total Revenue</p>
-            <h3 className="font-serif text-xl sm:text-2xl text-gold-700 font-bold mt-0.5 tabular-nums">
-              LKR {totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <h3 className="price-display text-xl sm:text-2xl text-gold-700 font-bold mt-0.5">
+              LKR {totalRevenue.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
             </h3>
             <p className="text-[10px] text-gray-400 font-sans mt-0.5">{totalCount} transactions</p>
           </div>
@@ -470,8 +493,8 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-sans text-gray-400 uppercase font-semibold tracking-wider">Today's Sales</p>
-            <h3 className="font-serif text-xl sm:text-2xl text-flora-brown font-bold mt-0.5 tabular-nums">
-              LKR {todayTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <h3 className="price-display text-xl sm:text-2xl text-[#5C4A00] font-bold mt-0.5">
+              LKR {todayTotal.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
             </h3>
             <p className="text-[10px] text-gray-400 font-sans mt-0.5">{todayCount} orders today</p>
           </div>
@@ -484,8 +507,8 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-sans text-gray-400 uppercase font-semibold tracking-wider">Average Order</p>
-            <h3 className="font-serif text-xl sm:text-2xl text-flora-brown font-bold mt-0.5 tabular-nums">
-              LKR {avgOrder.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <h3 className="price-display text-xl sm:text-2xl text-[#5C4A00] font-bold mt-0.5">
+              LKR {avgOrder.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
             </h3>
             <p className="text-[10px] text-gray-400 font-sans mt-0.5">Per transaction</p>
           </div>
@@ -498,8 +521,8 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-sans text-gray-400 uppercase font-semibold tracking-wider">Pending / Unpaid</p>
-            <h3 className="font-serif text-xl sm:text-2xl text-red-700 font-bold mt-0.5 tabular-nums">
-              LKR {pendingTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <h3 className="price-display text-xl sm:text-2xl text-red-700 font-bold mt-0.5">
+              LKR {pendingTotal.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
             </h3>
             <p className="text-[10px] text-gray-400 font-sans mt-0.5">{pendingCount} orders</p>
           </div>
@@ -646,7 +669,7 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
       </div>
 
       {/* 4. Aggregation Breakdown Metrics Bars */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Payment Methods Breakdown */}
         <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm space-y-3.5">
           <h3 className="font-serif text-sm font-bold text-flora-brown uppercase tracking-wider">Payment Methods</h3>
@@ -710,7 +733,7 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
       </div>
 
       {/* 5. Main Desktop Sales Table */}
-      <div className="hidden md:block bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+      <div className="hidden lg:block bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm font-sans">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50 text-[10px] tracking-[0.15em] uppercase text-gray-400 font-medium">
@@ -896,9 +919,12 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
 
                   {/* Grand Total Amount */}
                   <td className="px-4 py-4 text-right">
-                    <span className="font-serif text-base font-bold text-gold-700 tabular-nums">
-                      LKR {order.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
+                    <div className="flex items-baseline justify-end gap-0.5 font-sans">
+                      <span className="text-[10px] text-gold-600/70">LKR</span>
+                      <span className="price-small text-gold-600">
+                        {order.total.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   </td>
 
                   {/* Actions Column */}
@@ -923,6 +949,7 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
                               name: item.product?.name || 'Flower arrangement',
                               quantity: item.quantity,
                               unitPrice: item.unit_price,
+                              order_item_addons: item.order_item_addons || [],
                             })),
                             subtotal: order.subtotal,
                             deliveryCharge: order.delivery_charge,
@@ -975,8 +1002,8 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
         </table>
       </div>
 
-      {/* 6. Mobile Card List (Viewport < 768px) */}
-      <div className="md:hidden space-y-3">
+      {/* 6. Mobile Card List (Viewport < 1024px) */}
+      <div className="lg:hidden space-y-3">
         {paginatedOrders.map(order => {
           const isPosSale = !!order.cashier_id;
           const orderDate = new Date(order.created_at);
@@ -1034,9 +1061,12 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
                 <span className="text-[10px] text-gray-400 font-sans">
                   {orderDate.toLocaleDateString('en-LK')} {orderDate.toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}
                 </span>
-                <span className="font-serif text-base font-bold text-gold-700 tabular-nums">
-                  LKR {order.total.toLocaleString()}
-                </span>
+                <div className="flex items-baseline gap-0.5 font-sans">
+                  <span className="text-[10px] text-gold-600/70">LKR</span>
+                  <span className="price-small text-gold-600">
+                    {order.total.toLocaleString('en-LK')}
+                  </span>
+                </div>
               </div>
             </div>
           );
@@ -1102,7 +1132,7 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
             {/* Scrollable Modal Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-touch bg-gray-50">
               {/* Section 1: Logistics / Info Card */}
-              <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-2 text-xs">
                   <h4 className="font-sans text-[10px] font-bold uppercase tracking-wider text-gold-700">Order Metadata</h4>
                   <div className="flex justify-between border-b border-gray-50 pb-1.5">
@@ -1127,6 +1157,22 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
                       {selected.fulfillment_method === 'Delivery' ? '🚚 Delivery' : '🏪 Store Pickup'}
                     </span>
                   </div>
+                  {selected.requested_delivery_date && (
+                    <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                      <span className="text-gray-400">Requested Date:</span>
+                      <span className="text-gray-800 font-semibold">
+                        {selected.requested_delivery_date}
+                      </span>
+                    </div>
+                  )}
+                  {selected.requested_delivery_time && (
+                    <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                      <span className="text-gray-400">Requested Time:</span>
+                      <span className="text-gray-800 font-semibold">
+                        {selected.requested_delivery_time}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between border-b border-gray-50 pb-1.5">
                     <span className="text-gray-400">Payment Channel:</span>
                     <span className="text-gray-800 font-semibold">{selected.payment_method || 'Online'}</span>
@@ -1164,6 +1210,7 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
                             name: item.product?.name || 'Flower arrangement',
                             quantity: item.quantity,
                             unitPrice: item.unit_price,
+                            order_item_addons: item.order_item_addons || [],
                           })),
                           subtotal: selected.subtotal,
                           deliveryCharge: selected.delivery_charge,
@@ -1215,13 +1262,38 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
                                   <div className="absolute inset-0 flex items-center justify-center text-xs">🌸</div>
                                 )}
                               </div>
+                            <div className="flex flex-col">
                               <span className="font-sans font-medium text-gray-800 line-clamp-2 max-w-[160px] leading-tight">{item.product?.name || 'Flower arrangement'}</span>
+                              {item.order_item_addons?.map((oa: any) => (
+                                <div key={oa.id} className="flex items-center gap-1 mt-0.5 ml-2">
+                                  <span className="text-[8px] text-gray-400">└</span>
+                                  <span className="text-[10px] text-gray-500">{oa.addon_name}</span>
+                                  <span className="text-[10px] text-gold-600 font-semibold tabular-nums">
+                                    (+LKR {Number(oa.addon_price).toLocaleString('en-LK')})
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                             </div>
                           </td>
                           <td className="py-2 px-1 font-mono text-[10px] text-gold-600 font-semibold">{item.product?.sku}</td>
                           <td className="py-2 px-1 text-center font-mono font-semibold">{item.quantity}</td>
-                          <td className="py-2 px-1 text-right font-mono text-gray-500">LKR {item.unit_price.toLocaleString()}</td>
-                          <td className="py-2 px-1 text-right font-mono font-bold text-gold-700">LKR {(item.quantity * item.unit_price).toLocaleString()}</td>
+                          <td className="py-2 px-1 text-right">
+                            <div className="flex items-baseline justify-end gap-0.5 font-sans">
+                              <span className="text-[9px] text-gray-400">LKR</span>
+                              <span className="price-small text-gray-700">
+                                {item.unit_price.toLocaleString('en-LK')}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-1 text-right">
+                            <div className="flex items-baseline justify-end gap-0.5 font-sans">
+                              <span className="text-[9px] text-gold-600/70">LKR</span>
+                              <span className="price-small text-gold-600">
+                                {(item.quantity * item.unit_price).toLocaleString('en-LK')}
+                              </span>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1235,16 +1307,26 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
                 <div className="space-y-1.5 text-xs text-gray-600 font-sans">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span className="font-mono">LKR {selected.subtotal.toLocaleString()}</span>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-[9px] text-gray-400">LKR</span>
+                      <span className="price-small text-gray-700">
+                        {selected.subtotal.toLocaleString('en-LK')}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex justify-between">
                     <span>Delivery Charge {selected.fulfillment_method === 'Delivery' && selected.delivery_distance_km ? `(${selected.delivery_distance_km.toFixed(2)} km)` : ''}</span>
-                    <span className="font-mono">LKR {selected.delivery_charge.toLocaleString()}</span>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-[9px] text-gray-400">LKR</span>
+                      <span className="price-small text-gray-700">
+                        {selected.delivery_charge.toLocaleString('en-LK')}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex justify-between border-t border-gray-100 pt-2 font-semibold text-flora-brown">
                     <span className="text-sm">GRAND TOTAL</span>
-                    <span className="font-serif text-lg font-bold text-gold-700 font-mono">
-                      LKR {selected.total.toLocaleString()}
+                    <span className="price-display text-lg text-gold-600 font-bold">
+                      LKR {selected.total.toLocaleString('en-LK')}
                     </span>
                   </div>
                 </div>
@@ -1298,7 +1380,7 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
             </div>
 
             {/* Modal sticky Footer Actions */}
-            <div className="bg-white p-4 md:p-6 border-t border-gray-100 flex flex-wrap gap-3 shrink-0 pb-safe">
+            <div className="bg-white p-4 lg:p-6 border-t border-gray-100 flex flex-wrap gap-3 shrink-0 pb-safe">
               {/* Thermal Print */}
               <button
                 type="button"
@@ -1319,6 +1401,7 @@ export default function SalesClient({ initialOrders, storeSettings }: Props) {
                       name: item.product?.name || 'Flower arrangement',
                       quantity: item.quantity,
                       unitPrice: item.unit_price,
+                      order_item_addons: item.order_item_addons || [],
                     })),
                     subtotal: selected.subtotal,
                     deliveryCharge: selected.delivery_charge,

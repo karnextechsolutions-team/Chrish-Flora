@@ -30,7 +30,7 @@ export default function MobileBottomNav({ cartOpen, setCartOpen }: MobileBottomN
 
   const isHomeActive = pathname === '/storefront';
   const isShopActive = pathname === '/storefront/products';
-  const isAccountActive = pathname === '/auth/login' || pathname === '/storefront/account';
+  const isAccountActive = pathname === '/auth/login' || pathname.startsWith('/storefront/account');
 
   const accountHref = user ? '/storefront/account' : '/auth/login';
 

@@ -48,25 +48,28 @@ export default function AdminDashboardClient({ totalOrders, pendingOrders, recen
           </div>
           <div className="divide-y divide-gray-50">
             {recentOrders.slice(0, 6).map(order => (
-              <div key={order.id} className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
-                <div className="flex justify-between items-start md:items-center md:flex-1 md:gap-4">
+              <div key={order.id} className="px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
+                <div className="flex justify-between items-start lg:items-center lg:flex-1 lg:gap-4">
                   <div className="min-w-0">
                     <p className="font-sans text-sm font-medium text-flora-brown truncate">{order.customer_name}</p>
                     <p className="text-xs text-gray-400 font-sans">
                       {new Date(order.created_at).toLocaleDateString('en-LK')}
                     </p>
                   </div>
-                  <div className="md:hidden shrink-0">
+                  <div className="lg:hidden shrink-0">
                     <OrderStatusBadge status={order.status} />
                   </div>
                 </div>
-                <div className="flex justify-between md:justify-end items-center md:gap-4">
-                  <div className="hidden md:block">
+                <div className="flex justify-between lg:justify-end items-center lg:gap-4">
+                  <div className="hidden lg:block">
                     <OrderStatusBadge status={order.status} />
                   </div>
-                  <p className="font-sans text-sm tabular font-medium text-flora-brown whitespace-nowrap ml-auto">
-                    LKR {order.total.toLocaleString()}
-                  </p>
+                  <div className="flex items-baseline gap-0.5 ml-auto">
+                    <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                    <span className="price-small text-gold-600">
+                      {order.total.toLocaleString('en-LK')}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

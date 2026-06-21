@@ -1,40 +1,58 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { CartItem, Product } from '@/types';
+import type { CartItem, Product, CartItemAddon } from '@/types';
 
 interface CartState {
   items: CartItem[];
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; product: Product }
-  | { type: 'REMOVE_ITEM'; productId: string }
-  | { type: 'UPDATE_QTY'; productId: string; quantity: number }
+  | { type: 'ADD_ITEM'; product: Product; addons?: CartItemAddon[] }
+  | { type: 'REMOVE_ITEM'; cartItemId: string }
+  | { type: 'UPDATE_QTY'; cartItemId: string; quantity: number }
   | { type: 'CLEAR_CART' }
   | { type: 'HYDRATE'; items: CartItem[] };
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existing = state.items.find(i => i.product.id === action.product.id);
+      const addons = action.addons || [];
+      const addonTotal = addons.reduce((sum, a) => sum + a.price, 0);
+      const itemTotal = action.product.price + addonTotal;
+      const addonIds = addons.map(a => a.id).sort().join('-');
+      const cartItemId = addonIds ? `${action.product.id}-${addonIds}` : action.product.id;
+
+      const existing = state.items.find(i => i.cartItemId === cartItemId);
       if (existing) {
         return {
           items: state.items.map(i =>
-            i.product.id === action.product.id
+            i.cartItemId === cartItemId
               ? { ...i, quantity: Math.min(i.quantity + 1, i.product.quantity) }
               : i
           ),
         };
       }
-      return { items: [...state.items, { product: action.product, quantity: 1 }] };
+      return {
+        items: [
+          ...state.items,
+          {
+            product: action.product,
+            quantity: 1,
+            addons,
+            addonTotal,
+            itemTotal,
+            cartItemId,
+          },
+        ],
+      };
     }
     case 'REMOVE_ITEM':
-      return { items: state.items.filter(i => i.product.id !== action.productId) };
+      return { items: state.items.filter(i => i.cartItemId !== action.cartItemId) };
     case 'UPDATE_QTY':
       return {
         items: state.items.map(i =>
-          i.product.id === action.productId
+          i.cartItemId === action.cartItemId
             ? { ...i, quantity: Math.max(1, Math.min(action.quantity, i.product.quantity)) }
             : i
         ),
@@ -72,7 +90,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [state.items]);
 
   const totalItems = state.items.reduce((s, i) => s + i.quantity, 0);
-  const subtotal = state.items.reduce((s, i) => s + i.quantity * i.product.price, 0);
+  const subtotal = state.items.reduce((s, i) => s + i.quantity * (i.itemTotal || i.product.price), 0);
 
   return (
     <CartContext.Provider value={{ state, dispatch, totalItems, subtotal }}>

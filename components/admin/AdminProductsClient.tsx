@@ -202,7 +202,7 @@ export default function AdminProductsClient({ initialProducts, initialReviews }:
       {activeTab === 'products' && (
         <>
           {/* Desktop Table */}
-          <div className="hidden md:block bg-white border border-gray-100 shadow-sm overflow-hidden">
+          <div className="hidden lg:block bg-white border border-gray-100 shadow-sm overflow-hidden">
             <table className="w-full text-sm font-sans">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
@@ -264,7 +264,7 @@ export default function AdminProductsClient({ initialProducts, initialReviews }:
           </div>
 
           {/* Mobile Card Grid (2 Columns) */}
-          <div className="md:hidden grid grid-cols-2 gap-3">
+          <div className="lg:hidden grid grid-cols-2 gap-3">
             {products.map(p => (
               <div key={p.id} className="bg-white border border-gray-200 shadow-sm flex flex-col overflow-hidden relative">
                 {/* Image top */}
@@ -315,7 +315,7 @@ export default function AdminProductsClient({ initialProducts, initialReviews }:
             <p className="text-center text-gray-500 py-10">No reviews found.</p>
           ) : (
             reviews.map(review => (
-              <div key={review.id} className="border border-gray-100 p-4 rounded flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+              <div key={review.id} className="border border-gray-100 p-4 rounded flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-serif font-medium">{review.reviewer_name}</span>
@@ -347,9 +347,9 @@ export default function AdminProductsClient({ initialProducts, initialReviews }:
 
       {/* Product Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 lg:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowForm(false)} />
-          <div className="relative bg-white w-full h-full md:h-auto md:max-w-2xl md:max-h-[90vh] shadow-2xl p-6 flex flex-col overflow-hidden">
+          <div className="relative bg-white w-full h-full lg:h-auto lg:max-w-2xl lg:max-h-[90vh] shadow-2xl p-6 flex flex-col overflow-hidden">
             {/* Header */}
             <div className="flex justify-between items-center mb-6 shrink-0">
               <h2 className="font-serif text-2xl text-flora-brown">
@@ -362,7 +362,7 @@ export default function AdminProductsClient({ initialProducts, initialReviews }:
 
             {/* Scrollable Form Body */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-6 scroll-touch">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
                 <div className="space-y-4">
                   {[
                     { key: 'name', label: 'Product Name *', type: 'text' },

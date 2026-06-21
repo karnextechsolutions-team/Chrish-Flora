@@ -2,7 +2,7 @@
 // components/admin/AdminOrdersClient.tsx
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { X, MapPin, Phone, Mail, User, FileText, Package } from 'lucide-react';
+import { X, MapPin, Phone, Mail, User, FileText, Package, Calendar, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Order, OrderStatus } from '@/types';
 import OrderStatusBadge from './OrderStatusBadge';
@@ -28,7 +28,18 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
         // Refetch orders
         supabase
           .from('orders')
-          .select('*, order_items(*, product:products(*))')
+          .select(`
+            *,
+            order_items (
+              *,
+              product:products(*),
+              order_item_addons (
+                id,
+                addon_name,
+                addon_price
+              )
+            )
+          `)
           .order('created_at', { ascending: false })
           .then(({ data }) => { if (data) setOrders(data); });
       })
@@ -64,7 +75,7 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white border border-gray-100 shadow-sm overflow-hidden">
+      <div className="hidden lg:block bg-white border border-gray-100 shadow-sm overflow-hidden">
         <table className="w-full text-sm font-sans">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
@@ -97,8 +108,13 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
                 <td className="px-6 py-4">
                   <OrderStatusBadge status={order.status} />
                 </td>
-                <td className="px-6 py-4 text-right tabular font-medium">
-                  LKR {order.total.toLocaleString()}
+                <td className="px-6 py-4 text-right">
+                  <div className="flex items-baseline justify-end gap-0.5">
+                    <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                    <span className="price-small text-gold-600">
+                      {order.total.toLocaleString('en-LK')}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                   <div className="flex items-center gap-2">
@@ -141,7 +157,7 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
       </div>
 
       {/* Mobile Card List */}
-      <div className="md:hidden space-y-4">
+      <div className="lg:hidden space-y-4">
         {filtered.map(order => (
           <div
             key={order.id}
@@ -167,8 +183,11 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
 
             {/* Bottom: Total + status dropdown */}
             <div className="flex items-center justify-between pt-2 border-t border-gray-50" onClick={e => e.stopPropagation()}>
-              <span className="font-sans text-sm font-semibold text-gold-700">
-                LKR {order.total.toLocaleString()}
+              <span className="flex items-baseline gap-0.5">
+                <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                <span className="price-small text-gold-600">
+                  {order.total.toLocaleString('en-LK')}
+                </span>
               </span>
               <div className="flex items-center gap-2">
                 {order.customer_phone && order.customer_phone !== 'N/A' && (
@@ -205,9 +224,9 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
 
       {/* Order Detail Modal */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 lg:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSelected(null)} />
-          <div className="relative bg-white w-full h-full md:h-auto md:max-w-2xl md:max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+          <div className="relative bg-white w-full h-full lg:h-auto lg:max-w-2xl lg:max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
 
             {/* Modal Header */}
             <div className="bg-flora-brown text-flora-cream px-6 py-4 flex justify-between items-center shrink-0">
@@ -270,6 +289,22 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
                     <Package size={16} className="text-gray-400 flex-shrink-0" />
                     <span>{selected.fulfillment_method}</span>
                   </div>
+                  {selected.requested_delivery_date && (
+                    <div className="flex items-center gap-3">
+                      <Calendar size={16} className="text-gray-400 flex-shrink-0" />
+                      <span>
+                        Requested Date: <strong>{new Date(selected.requested_delivery_date).toLocaleDateString('en-LK', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</strong>
+                      </span>
+                    </div>
+                  )}
+                  {selected.requested_delivery_time && (
+                    <div className="flex items-center gap-3">
+                      <Clock size={16} className="text-gray-400 flex-shrink-0" />
+                      <span>
+                        Requested Time: <strong>{selected.requested_delivery_time}</strong>
+                      </span>
+                    </div>
+                  )}
                   {selected.delivery_address && (
                     <div className="flex items-start gap-3">
                       <MapPin size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
@@ -305,7 +340,7 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {(selected.order_items || []).map((item: any) => (
+                     {(selected.order_items || []).map((item: any) => (
                       <tr key={item.id}>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-3">
@@ -316,12 +351,32 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
                                 <div className="w-full h-full flex items-center justify-center text-lg">🌸</div>
                               )}
                             </div>
-                            <span className="font-medium text-flora-brown">{item.product?.name}</span>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-flora-brown">{item.product?.name}</span>
+                              {item.order_item_addons?.map((oa: any) => (
+                                <div key={oa.id} className="flex items-center gap-1.5 mt-0.5 ml-2">
+                                  <span className="text-[9px] text-flora-brown/40">└</span>
+                                  <span className="text-[10px] font-sans text-flora-brown/60">
+                                    {oa.addon_name}
+                                  </span>
+                                  <span className="text-[10px] font-sans text-gold-600 font-semibold tabular-nums">
+                                    +LKR {Number(oa.addon_price).toLocaleString('en-LK')}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </td>
                         <td className="px-3 py-3 text-xs text-gold-600 font-sans">{item.product?.sku}</td>
                         <td className="px-3 py-3 text-center tabular">{item.quantity}</td>
-                        <td className="px-3 py-3 text-right tabular">LKR {item.unit_price.toLocaleString()}</td>
+                        <td className="px-3 py-3 text-right">
+                          <div className="flex items-baseline justify-end gap-0.5">
+                            <span className="font-sans text-[10px] text-gold-600/70">LKR</span>
+                            <span className="price-small text-gold-600">
+                              {item.unit_price.toLocaleString('en-LK')}
+                            </span>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -334,16 +389,26 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
                 <div className="space-y-1 text-sm font-sans">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Asset Value (Subtotal)</span>
-                    <span className="tabular">LKR {selected.subtotal.toLocaleString()}</span>
+                    <span className="flex items-baseline gap-0.5">
+                      <span className="font-sans text-[10px] text-gold-600/70">LKR</span>
+                      <span className="price-small text-gold-600">
+                        {selected.subtotal.toLocaleString('en-LK')}
+                      </span>
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Delivery Charge</span>
-                    <span className="tabular">LKR {selected.delivery_charge.toLocaleString()}</span>
+                    <span className="flex items-baseline gap-0.5">
+                      <span className="font-sans text-[10px] text-gold-600/70">LKR</span>
+                      <span className="price-small text-gold-600">
+                        {selected.delivery_charge.toLocaleString('en-LK')}
+                      </span>
+                    </span>
                   </div>
                   <div className="flex justify-between border-t border-gray-200 pt-2 mt-2 font-medium text-flora-brown">
                     <span>Grand Total</span>
-                    <span className="tabular font-serif text-xl text-gold-700">
-                      LKR {selected.total.toLocaleString()}
+                    <span className="price-display text-xl text-gold-600 font-bold">
+                      LKR {selected.total.toLocaleString('en-LK')}
                     </span>
                   </div>
                 </div>
@@ -352,7 +417,7 @@ export default function AdminOrdersClient({ initialOrders }: Props) {
             </div>
 
             {/* Update Status (Sticky Footer) */}
-            <div className="bg-white p-4 md:p-6 border-t border-gray-100 flex gap-3 shrink-0 pb-safe">
+            <div className="bg-white p-4 lg:p-6 border-t border-gray-100 flex gap-3 shrink-0 pb-safe">
               <select
                 value={selected.status}
                 onChange={e => handleStatusChange(selected.id, e.target.value as OrderStatus)}

@@ -46,12 +46,20 @@ export default async function ProductPage({ params }: Props) {
     if (data) relatedProducts = data;
   }
 
+  // Fetch active add-ons
+  const { data: addons } = await supabase
+    .from('product_addons')
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+
   return (
     <ProductDetailClient 
       product={product} 
       initialReviews={reviews || []} 
       relatedProducts={relatedProducts}
       userId={session?.user?.id}
+      addons={addons || []}
     />
   );
 }

@@ -58,7 +58,7 @@ export default function CartDrawer({ open, onClose }: Props) {
             </div>
           ) : (
             state.items.map(item => (
-              <div key={item.product.id} className="flex gap-3 sm:gap-4 py-4 border-b border-flora-cream-dark items-start">
+              <div key={item.cartItemId} className="flex gap-3 sm:gap-4 py-4 border-b border-flora-cream-dark items-start">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 bg-olive-100 flex-shrink-0 overflow-hidden relative">
                   {item.product.image_url ? (
                     <Image
@@ -75,7 +75,7 @@ export default function CartDrawer({ open, onClose }: Props) {
                   <div className="flex justify-between items-start gap-1">
                     <p className="font-serif text-base sm:text-lg text-flora-brown leading-tight truncate">{item.product.name}</p>
                     <button
-                      onClick={() => dispatch({ type: 'REMOVE_ITEM', productId: item.product.id })}
+                      onClick={() => dispatch({ type: 'REMOVE_ITEM', cartItemId: item.cartItemId })}
                       className="text-red-400 hover:text-red-600 transition-colors p-1"
                       aria-label="Remove item"
                     >
@@ -83,6 +83,27 @@ export default function CartDrawer({ open, onClose }: Props) {
                     </button>
                   </div>
                   <p className="text-xs text-gold-600 font-sans">{item.product.sku}</p>
+
+                  {/* Addon pills below product name */}
+                  {item.addons && item.addons.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {item.addons.map((addon: any) => (
+                        <span key={addon.id}
+                          className="inline-flex items-center gap-1
+                            bg-olive-50 border border-olive-200
+                            text-olive-700 text-[9px] font-sans
+                            px-2 py-0.5 rounded-full"
+                        >
+                          {addon.type === 'wrapping_paper' ? '🎁' : 
+                           addon.type === 'ribbon' ? '🎀' : '✉️'}
+                          {addon.name}
+                          <span className="text-gold-600 font-bold">
+                            +{addon.price}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   
                   <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
                     {/* Quantity controls */}
@@ -90,8 +111,8 @@ export default function CartDrawer({ open, onClose }: Props) {
                       <button
                         onClick={() =>
                           item.quantity === 1
-                            ? dispatch({ type: 'REMOVE_ITEM', productId: item.product.id })
-                            : dispatch({ type: 'UPDATE_QTY', productId: item.product.id, quantity: item.quantity - 1 })
+                            ? dispatch({ type: 'REMOVE_ITEM', cartItemId: item.cartItemId })
+                            : dispatch({ type: 'UPDATE_QTY', cartItemId: item.cartItemId, quantity: item.quantity - 1 })
                         }
                         className="w-11 h-11 flex items-center justify-center text-flora-brown hover:bg-gold-50 transition-colors"
                       >
@@ -99,7 +120,7 @@ export default function CartDrawer({ open, onClose }: Props) {
                       </button>
                       <span className="font-sans text-sm w-6 text-center tabular">{item.quantity}</span>
                       <button
-                        onClick={() => dispatch({ type: 'UPDATE_QTY', productId: item.product.id, quantity: item.quantity + 1 })}
+                        onClick={() => dispatch({ type: 'UPDATE_QTY', cartItemId: item.cartItemId, quantity: item.quantity + 1 })}
                         disabled={item.quantity >= item.product.quantity}
                         className="w-11 h-11 flex items-center justify-center text-flora-brown hover:bg-gold-50 transition-colors disabled:opacity-40"
                       >
@@ -107,9 +128,12 @@ export default function CartDrawer({ open, onClose }: Props) {
                       </button>
                     </div>
                     {/* Price */}
-                    <p className="font-serif text-base sm:text-lg text-gold-700 tabular font-bold">
-                      LKR {(item.quantity * item.product.price).toLocaleString()}
-                    </p>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                      <span className="price-small text-gold-600">
+                        {(item.quantity * (item.itemTotal || item.product.price)).toLocaleString('en-LK')}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -122,8 +146,8 @@ export default function CartDrawer({ open, onClose }: Props) {
           <div className="px-6 py-6 border-t border-flora-cream-dark space-y-4 bg-white">
             <div className="flex justify-between items-center">
               <span className="font-sans text-sm text-flora-brown/70">Subtotal</span>
-              <span className="font-serif text-2xl text-gold-700 tabular">
-                LKR {subtotal.toLocaleString()}
+              <span className="price-display text-2xl text-gold-600">
+                LKR {subtotal.toLocaleString('en-LK')}
               </span>
             </div>
             <Link

@@ -388,8 +388,8 @@ export default function ReportsClient() {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-sans text-gray-400 uppercase font-semibold tracking-wider truncate">Total Revenue</p>
-            <h3 className="font-serif text-base sm:text-2xl text-flora-brown font-bold mt-1 truncate">
-              LKR {totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <h3 className="price-display text-base sm:text-2xl text-[#5C4A00] font-bold mt-1 truncate">
+              LKR {totalRevenue.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
             </h3>
           </div>
         </div>
@@ -414,8 +414,8 @@ export default function ReportsClient() {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-sans text-gray-400 uppercase font-semibold tracking-wider truncate">Avg Sale</p>
-            <h3 className="font-serif text-base sm:text-2xl text-flora-brown font-bold mt-1 truncate">
-              LKR {avgOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <h3 className="price-display text-base sm:text-2xl text-[#5C4A00] font-bold mt-1 truncate">
+              LKR {avgOrderValue.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
             </h3>
           </div>
         </div>
@@ -439,8 +439,8 @@ export default function ReportsClient() {
         <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm flex flex-col justify-between">
           <p className="text-xs font-sans text-gray-400 uppercase font-semibold tracking-wider">Delivery Revenue</p>
           <div className="mt-2 flex items-baseline justify-between">
-            <h4 className="font-serif text-3xl font-bold text-flora-brown">
-              LKR {deliveryRev.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <h4 className="price-display text-3xl font-bold text-[#5C4A00]">
+              LKR {deliveryRev.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
             </h4>
             <span className="font-mono text-sm bg-olive-50 text-olive-700 px-2.5 py-0.5 rounded font-bold">
               {deliveryPct.toFixed(1)}%
@@ -454,8 +454,8 @@ export default function ReportsClient() {
         <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm flex flex-col justify-between">
           <p className="text-xs font-sans text-gray-400 uppercase font-semibold tracking-wider">Store Pickup Revenue</p>
           <div className="mt-2 flex items-baseline justify-between">
-            <h4 className="font-serif text-3xl font-bold text-flora-brown">
-              LKR {pickupRev.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <h4 className="price-display text-3xl font-bold text-[#5C4A00]">
+              LKR {pickupRev.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
             </h4>
             <span className="font-mono text-sm bg-gold-50 text-gold-700 px-2.5 py-0.5 rounded font-bold">
               {pickupPct.toFixed(1)}%
@@ -482,7 +482,7 @@ export default function ReportsClient() {
                   <Tooltip
                     contentStyle={{ background: '#FBF7EE', border: '1px solid #C9962A', borderRadius: '4px', fontFamily: 'sans-serif', fontSize: '12px' }}
                     labelStyle={{ fontFamily: 'serif', fontWeight: 'bold', color: '#5C4A00' }}
-                    formatter={(value: any) => [`LKR ${Number(value).toLocaleString()}`, '']}
+                    formatter={(value: any) => [`LKR ${Number(value).toLocaleString('en-LK')}`, '']}
                   />
                   <Legend verticalAlign="top" height={36} iconSize={10} iconType="circle" wrapperStyle={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }} />
                   <Bar dataKey="delivery" name="Delivery" stackId="a" fill="#BEC96A" />
@@ -592,8 +592,13 @@ export default function ReportsClient() {
                         <td className="py-3 px-4 text-center font-mono font-bold">
                           {p.units_sold}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-semibold text-flora-brown">
-                          LKR {Number(p.revenue).toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-baseline justify-end gap-0.5 font-sans">
+                            <span className="text-[10px] text-gold-600/70">LKR</span>
+                            <span className="price-small text-gold-600">
+                              {Number(p.revenue).toLocaleString('en-LK', { minimumFractionDigits: 0 })}
+                            </span>
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-block w-2 h-2 rounded-full
@@ -657,9 +662,12 @@ export default function ReportsClient() {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="font-mono font-bold text-gray-800">{p.units_sold} sold</p>
-                        <p className="font-mono text-gold-600 font-semibold mt-0.5">
-                          LKR {Number(p.revenue).toLocaleString()}
-                        </p>
+                        <div className="flex items-baseline justify-end gap-0.5 font-sans mt-0.5">
+                          <span className="text-[10px] text-gold-600/70">LKR</span>
+                          <span className="price-small text-gold-600">
+                            {Number(p.revenue).toLocaleString('en-LK')}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -699,11 +707,21 @@ export default function ReportsClient() {
                       <td className="py-3 px-4 text-center font-mono font-bold">
                         {st.ordersProcessed}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-semibold text-flora-brown">
-                        LKR {st.revenue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-baseline justify-end gap-0.5 font-sans">
+                          <span className="text-[10px] text-gray-400">LKR</span>
+                          <span className="price-small text-gray-700">
+                            {st.revenue.toLocaleString('en-LK', { minimumFractionDigits: 0 })}
+                          </span>
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-semibold text-gold-600">
-                        LKR {st.avgSale.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-baseline justify-end gap-0.5 font-sans">
+                          <span className="text-[10px] text-gold-600/70">LKR</span>
+                          <span className="price-small text-gold-600">
+                            {st.avgSale.toLocaleString('en-LK', { minimumFractionDigits: 0 })}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -728,15 +746,21 @@ export default function ReportsClient() {
                     </div>
                     <div className="flex justify-between text-gray-500">
                       <span>Revenue Generated:</span>
-                      <span className="font-mono font-semibold text-gray-800">
-                        LKR {st.revenue.toLocaleString()}
-                      </span>
+                      <div className="flex items-baseline gap-0.5 font-sans">
+                        <span className="text-[10px] text-gray-400">LKR</span>
+                        <span className="price-small text-gray-800">
+                          {st.revenue.toLocaleString('en-LK')}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex justify-between text-gray-500 border-t border-gray-100 pt-1.5">
                       <span>Avg. Order Value:</span>
-                      <span className="font-mono font-semibold text-gold-600">
-                        LKR {st.avgSale.toLocaleString()}
-                      </span>
+                      <div className="flex items-baseline gap-0.5 font-sans">
+                        <span className="text-[10px] text-gold-600/70">LKR</span>
+                        <span className="price-small text-gold-600">
+                          {st.avgSale.toLocaleString('en-LK')}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))

@@ -110,10 +110,10 @@ export default function ProductCard({ product }: Props) {
 
         {/* Price & Add Row */}
         <div className="mt-3.5 flex justify-between items-center w-full">
-          <div>
-            <span className="text-[9px] font-sans text-gold/60 font-bold block leading-none">LKR</span>
-            <span className="font-serif text-xl font-bold text-gold tabular-nums leading-none">
-              {product.price.toLocaleString()}
+          <div className="flex items-baseline gap-0.5">
+            <span className="font-sans text-[10px] text-gold-600/70">LKR</span>
+            <span className="price-small text-gold-600 text-lg leading-none">
+              {product.price.toLocaleString('en-LK')}
             </span>
           </div>
 

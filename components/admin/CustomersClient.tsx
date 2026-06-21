@@ -139,7 +139,7 @@ export default function CustomersClient({ initialCustomers, initialOrders }: Pro
       {/* Customer List Table & Cards */}
       <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-lg">
         {/* Desktop Table view */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -308,7 +308,7 @@ export default function CustomersClient({ initialCustomers, initialOrders }: Pro
         </div>
 
         {/* Mobile Card List view */}
-        <div className="md:hidden divide-y divide-gray-100">
+        <div className="lg:hidden divide-y divide-gray-100">
           {filteredCustomers.length === 0 ? (
             <div className="py-12 text-center text-gray-400 font-serif text-sm">
               No customers found.

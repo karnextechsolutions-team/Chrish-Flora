@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  LayoutDashboard, ShoppingBag, Package, Settings, Store, Monitor, BarChart2, Users, UserCheck, X, Image as ImageIcon, Receipt
+  LayoutDashboard, ShoppingBag, Package, Settings, Store, Monitor, BarChart2, Users, UserCheck, X, Image as ImageIcon, Receipt, Sparkles
 } from 'lucide-react';
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { href: '/admin/pos',       icon: Monitor,          label: 'POS',       roles: ['admin', 'staff'] },
   { href: '/admin/banners',   icon: ImageIcon,        label: 'Banners',   roles: ['admin'] },
   { href: '/admin/products',  icon: Package,          label: 'Products',  roles: ['admin'] },
+  { href: '/admin/addons',    icon: Sparkles,         label: 'Add-ons',   roles: ['admin'] },
   { href: '/admin/reports',   icon: BarChart2,        label: 'Reports',   roles: ['admin'] },
   { href: '/admin/staff',     icon: Users,            label: 'Staff',     roles: ['admin'] },
   { href: '/admin/customers', icon: UserCheck,        label: 'Customers', roles: ['admin'] },
@@ -82,14 +83,11 @@ export default function AdminSidebar({ isOpen, onClose }: Props) {
 
   return (
     <>
-      {/* 1. Inline Sidebar (Tablet & Desktop) */}
-      <aside className="hidden md:flex flex-col w-[60px] lg:w-[280px] bg-flora-brown text-flora-cream min-h-screen sticky top-0 shrink-0 border-r border-white/5 transition-all duration-200">
+      {/* 1. Inline Sidebar (Desktop) */}
+      <aside className="hidden lg:flex flex-col w-[280px] bg-flora-brown text-flora-cream min-h-screen sticky top-0 shrink-0 border-r border-white/5 transition-all duration-200">
         {/* Brand */}
-        <div className="px-4 lg:px-6 py-6 border-b border-white/10 flex items-center justify-center lg:justify-start">
-          <div className="lg:hidden">
-            <p className="font-serif text-xl tracking-wide text-flora-cream font-bold">CF</p>
-          </div>
-          <div className="hidden lg:block">
+        <div className="px-6 py-6 border-b border-white/10 flex items-center justify-start">
+          <div>
             <p className="font-serif text-2xl tracking-wide text-flora-cream">Chrish Flora</p>
             <p className="text-xs text-flora-cream/40 font-sans tracking-widest uppercase mt-0.5">
               Admin Console
@@ -98,47 +96,39 @@ export default function AdminSidebar({ isOpen, onClose }: Props) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-6 px-2 lg:px-3 space-y-1">
+        <nav className="flex-1 py-6 px-3 space-y-1">
           {filteredItems.map(item => {
             const active = pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center justify-center lg:justify-start gap-3 px-3 lg:px-4 py-3 text-sm font-sans transition-all relative group
+                className={`flex items-center justify-start gap-3 px-4 py-3 text-sm font-sans transition-all relative group
                   ${active
                     ? 'bg-gold-600 text-white'
                     : 'text-flora-cream/60 hover:bg-white/10 hover:text-flora-cream'}`}
               >
                 <item.icon size={18} className="shrink-0" />
-                <span className="hidden lg:inline">{item.label}</span>
+                <span className="inline">{item.label}</span>
                 {item.label === 'Sales' && todaySalesCount !== null && todaySalesCount > 0 && (
-                  <span className="hidden lg:inline-block ml-auto bg-gold text-flora-brown font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                  <span className="ml-auto bg-gold text-flora-brown font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
                     {todaySalesCount}
                   </span>
                 )}
-                {/* Tooltip for Tablet */}
-                <div className="lg:hidden absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-flora-brown border border-white/10 text-white text-xs px-2.5 py-1.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 rounded">
-                  {item.label} {item.label === 'Sales' && todaySalesCount !== null && todaySalesCount > 0 ? `(${todaySalesCount})` : ''}
-                </div>
               </Link>
             );
           })}
         </nav>
 
         {/* Storefront Link */}
-        <div className="px-2 lg:px-3 pb-6">
+        <div className="px-3 pb-6">
           <Link
             href="/storefront"
             target="_blank"
-            className="flex items-center justify-center lg:justify-start gap-3 px-3 lg:px-4 py-3 text-sm font-sans text-flora-cream/50 hover:text-flora-cream transition-colors relative group"
+            className="flex items-center justify-start gap-3 px-4 py-3 text-sm font-sans text-flora-cream/50 hover:text-flora-cream transition-colors relative group"
           >
             <Store size={18} className="shrink-0" />
-            <span className="hidden lg:inline">View Storefront ↗</span>
-            {/* Tooltip for Tablet */}
-            <div className="lg:hidden absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-flora-brown border border-white/10 text-white text-xs px-2.5 py-1.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 rounded">
-              View Storefront
-            </div>
+            <span className="inline">View Storefront ↗</span>
           </Link>
         </div>
       </aside>

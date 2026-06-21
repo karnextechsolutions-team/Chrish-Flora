@@ -47,6 +47,8 @@ export interface Order {
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
+  requested_delivery_date?: string | null;
+  requested_delivery_time?: string | null;
 }
 
 export interface OrderItem {
@@ -56,6 +58,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   product?: Product;
+  order_item_addons?: OrderItemAddon[];
 }
 
 export interface Profile {
@@ -84,6 +87,9 @@ export interface StoreSettings {
   cash_on_delivery_enabled?: boolean;
   online_payment_enabled?: boolean;
   online_payment_note?: string | null;
+  business_hours?: any;
+  whatsapp_notify_number?: string;
+  whatsapp_notify_enabled?: boolean;
   updated_at: string;
 }
 
@@ -96,9 +102,21 @@ export interface StoreBranch {
   phone: string;
 }
 
+export interface CartItemAddon {
+  id: string;
+  name: string;
+  type: string;
+  price: number;
+  color_hex?: string | null;
+}
+
 export interface CartItem {
   product: Product;
   quantity: number;
+  addons?: CartItemAddon[];      // Selected add-ons
+  addonTotal?: number;           // Total addon price
+  itemTotal?: number;            // product.price + addonTotal
+  cartItemId: string;            // Unique cart item identifier
 }
 
 export interface ProductReview {
@@ -127,5 +145,27 @@ export interface Banner {
   sort_order: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ProductAddon {
+  id: string;
+  name: string;
+  description: string | null;
+  type: 'wrapping_paper' | 'ribbon' | 'card' | 'vase' | 'other';
+  price: number;
+  image_url: string | null;
+  color_hex: string | null;
+  is_active: boolean;
+  is_in_stock: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface OrderItemAddon {
+  id: string;
+  order_item_id: string;
+  addon_id: string;
+  addon_name: string;
+  addon_price: number;
 }
 

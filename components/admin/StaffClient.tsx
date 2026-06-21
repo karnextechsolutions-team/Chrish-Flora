@@ -191,7 +191,7 @@ export default function StaffClient({ initialStaff, currentUserId }: Props) {
       {/* Staff directory table & Cards */}
       <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-lg">
         {/* Desktop Table view */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -312,7 +312,7 @@ export default function StaffClient({ initialStaff, currentUserId }: Props) {
         </div>
 
         {/* Mobile Card List view */}
-        <div className="md:hidden divide-y divide-gray-100">
+        <div className="lg:hidden divide-y divide-gray-100">
           {staffList.length === 0 ? (
             <div className="py-12 text-center text-gray-400 font-serif text-sm">
               No staff members registered.
@@ -409,8 +409,8 @@ export default function StaffClient({ initialStaff, currentUserId }: Props) {
 
       {/* Invite Modal */}
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-0 md:p-4">
-          <div className="bg-white w-full h-full md:h-auto md:max-w-md md:rounded-lg shadow-xl overflow-hidden border border-gray-100 animate-fadeIn flex flex-col">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-0 lg:p-4">
+          <div className="bg-white w-full h-full lg:h-auto lg:max-w-md lg:rounded-lg shadow-xl overflow-hidden border border-gray-100 animate-fadeIn flex flex-col">
             {/* Modal Header */}
             <div className="bg-flora-brown px-6 py-4 flex items-center justify-between text-flora-cream shrink-0">
               <h3 className="font-serif text-lg font-semibold tracking-wide">Invite Staff Member</h3>

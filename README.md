@@ -171,3 +171,31 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
+
+---
+
+## WhatsApp Admin Notifications (CallMeBot)
+
+### Setup (one-time, free):
+
+1. Save this number in your phone contacts:
+   `+34 644 59 70 46` (CallMeBot)
+
+2. Send this EXACT message via WhatsApp to that number:
+   `I allow callmebot to send me messages`
+
+3. Wait ~1 minute - you'll receive your API key
+
+4. Add to `.env.local`:
+   ```env
+   ADMIN_WHATSAPP_NUMBER=94XXXXXXXXX
+   CALLMEBOT_API_KEY=xxxxxxxx
+   ```
+
+5. For production, add same variables to your host (Vercel/Netlify) environment variables.
+
+### Notes:
+- Free plan: 5 messages/minute limit.
+- Messages appear from CallMeBot's WhatsApp number.
+- Admin sees order details formatted clearly.
+- If the CallMeBot API is down, checkout is NOT affected (fire-and-forget).

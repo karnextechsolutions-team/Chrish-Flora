@@ -18,6 +18,17 @@ export default function AdminSettingsClient({ initialSettings }: Props) {
     branches: [] as any[],
     cash_on_delivery_enabled: true,
     online_payment_enabled: true,
+    business_hours: {
+      monday: { open: '08:00', close: '18:00', closed: false },
+      tuesday: { open: '08:00', close: '18:00', closed: false },
+      wednesday: { open: '08:00', close: '18:00', closed: false },
+      thursday: { open: '08:00', close: '18:00', closed: false },
+      friday: { open: '08:00', close: '18:00', closed: false },
+      saturday: { open: '09:00', close: '17:00', closed: false },
+      sunday: { open: '09:00', close: '14:00', closed: false },
+    },
+    whatsapp_notify_number: '',
+    whatsapp_notify_enabled: false,
   };
   const init = initialSettings || defaults;
 
@@ -33,6 +44,9 @@ export default function AdminSettingsClient({ initialSettings }: Props) {
     store_email: init.store_email || '',
     cash_on_delivery_enabled: init.cash_on_delivery_enabled !== false,
     online_payment_enabled: init.online_payment_enabled !== false,
+    business_hours: init.business_hours || defaults.business_hours,
+    whatsapp_notify_number: init.whatsapp_notify_number || '',
+    whatsapp_notify_enabled: init.whatsapp_notify_enabled !== false,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -240,6 +254,145 @@ export default function AdminSettingsClient({ initialSettings }: Props) {
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Business Hours Section */}
+      <section className="bg-white border border-gray-100 shadow-sm p-6">
+        <h2 className="font-serif text-xl text-flora-brown mb-2">Business Hours</h2>
+        <p className="text-sm font-sans text-gray-400 mb-5">
+          Configure opening and closing times for each day of the week. Closed days will be blocked in checkout date selections.
+        </p>
+        
+        <div className="space-y-3.5">
+          {Object.entries(form.business_hours).map(([day, config]: [string, any]) => {
+            const isClosed = config.closed;
+            return (
+              <div key={day} className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-50 pb-3 gap-3">
+                <span className="font-sans text-sm font-semibold capitalize text-flora-brown w-32 shrink-0">
+                  {day}
+                </span>
+                
+                <div className="flex items-center gap-4 flex-1 justify-end">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-sans">Open:</span>
+                    <input
+                      type="time"
+                      disabled={isClosed}
+                      value={config.open}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm(p => ({
+                          ...p,
+                          business_hours: {
+                            ...p.business_hours,
+                            [day]: { ...p.business_hours[day], open: val }
+                          }
+                        }));
+                      }}
+                      className="border border-gray-200 rounded px-2.5 py-1 text-sm font-mono focus:outline-none focus:border-gold-500 disabled:opacity-50 disabled:bg-gray-100"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-sans">Close:</span>
+                    <input
+                      type="time"
+                      disabled={isClosed}
+                      value={config.close}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm(p => ({
+                          ...p,
+                          business_hours: {
+                            ...p.business_hours,
+                            [day]: { ...p.business_hours[day], close: val }
+                          }
+                        }));
+                      }}
+                      className="border border-gray-200 rounded px-2.5 py-1 text-sm font-mono focus:outline-none focus:border-gold-500 disabled:opacity-50 disabled:bg-gray-100"
+                    />
+                  </div>
+                  
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isClosed}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setForm(p => ({
+                          ...p,
+                          business_hours: {
+                            ...p.business_hours,
+                            [day]: { ...p.business_hours[day], closed: checked }
+                          }
+                        }));
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-gold-600 focus:ring-gold-500"
+                    />
+                    <span className="text-xs text-flora-brown font-medium font-sans">Closed</span>
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* WhatsApp Notifications Section */}
+      <section className="bg-white border border-gray-100 shadow-sm p-6">
+        <h2 className="font-serif text-xl text-flora-brown mb-2">
+          WhatsApp Admin Alerts
+        </h2>
+        <p className="text-sm font-sans text-gray-400 mb-5">
+          Receive pre-filled WhatsApp notifications when new orders are placed.
+        </p>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 border border-gray-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-xl">💬</div>
+              <div>
+                <p className="font-sans text-sm font-medium text-flora-brown">
+                  Enable Notifications
+                </p>
+                <p className="text-xs text-gray-400 font-sans mt-0.5">
+                  Send order details automatically to WhatsApp on checkout
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setForm(p => ({ 
+                ...p, 
+                whatsapp_notify_enabled: !p.whatsapp_notify_enabled 
+              }))}
+              className={`w-12 h-6 rounded-full transition-colors relative
+                ${form.whatsapp_notify_enabled 
+                  ? 'bg-gold-600' 
+                  : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform
+                ${form.whatsapp_notify_enabled 
+                  ? 'translate-x-6' 
+                  : 'translate-x-0.5'}`}
+              />
+            </button>
+          </div>
+          
+          {form.whatsapp_notify_enabled && (
+            <div className="space-y-2 animate-fadeIn">
+              <label className="label">Admin WhatsApp Number</label>
+              <input
+                className="input"
+                placeholder="E.g. 0771234567 or 94771234567"
+                value={form.whatsapp_notify_number}
+                onChange={(e) => setForm(p => ({ ...p, whatsapp_notify_number: e.target.value }))}
+              />
+              <p className="text-xs text-gray-400 font-sans">
+                Enter the number including country code (e.g. 94XXXXXXXX) or standard Sri Lankan local mobile format (07XXXXXXXX).
+              </p>
             </div>
           )}
         </div>

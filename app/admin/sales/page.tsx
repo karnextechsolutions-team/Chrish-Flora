@@ -9,7 +9,7 @@ export default async function SalesPage() {
 
   const { data: orders } = await supabase
     .from('orders')
-    .select('*, order_items(*, product:products(name, sku, image_url))')
+    .select('*, order_items(*, product:products(name, sku, image_url), order_item_addons(*))')
     .order('created_at', { ascending: false });
 
   const { data: settings } = await supabase

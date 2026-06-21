@@ -4,17 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Search, ShoppingCart, Plus, Minus, Trash2, Printer, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { Product } from '@/types';
+import type { Product, CartItem } from '@/types';
 import { generateReceiptMessage, shareOnWhatsApp } from '@/lib/whatsapp';
 
 interface Props {
   initialProducts: Product[];
 }
 
-interface CartItem {
-  product: Product;
-  quantity: number;
-}
 
 export default function POSClient({ initialProducts }: Props) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -129,7 +125,7 @@ export default function POSClient({ initialProducts }: Props) {
         }
         return prev.map(item => item.product.id === product.id ? { ...item, quantity: newQty } : item);
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, cartItemId: product.id }];
     });
   };
 
@@ -425,9 +421,12 @@ export default function POSClient({ initialProducts }: Props) {
                       </div>
                       
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="font-serif text-sm text-flora-brown font-semibold">
-                          LKR {p.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
+                        <div className="flex items-baseline gap-0.5">
+                          <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                          <span className="price-small text-gold-600">
+                            {p.price.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
                         
                         {/* Stock status indicator badge */}
                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-sans font-medium uppercase tracking-wider
@@ -510,12 +509,19 @@ export default function POSClient({ initialProducts }: Props) {
                   </div>
                   
                   <div className="text-right">
-                    <p className="text-[10px] text-flora-cream/50 font-mono">
-                      LKR {item.product.price.toLocaleString(undefined, { minimumFractionDigits: 2 })} ea
-                    </p>
-                    <p className="font-mono text-xs text-gold-300 font-semibold mt-0.5">
-                      LKR {(item.product.price * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </p>
+                    <div className="text-[10px] text-flora-cream/50 font-sans flex items-baseline justify-end gap-0.5">
+                      <span>LKR</span>
+                      <span className="tabular-nums font-semibold">
+                        {item.product.price.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="ml-1">ea</span>
+                    </div>
+                    <div className="flex items-baseline justify-end gap-0.5 mt-0.5">
+                      <span className="font-sans text-[10px] text-gold-300/70">LKR</span>
+                      <span className="price-small text-gold-300">
+                        {(item.product.price * item.quantity).toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -722,17 +728,27 @@ export default function POSClient({ initialProducts }: Props) {
 
           {/* Grand Totals */}
           <div className="border-t border-white/10 pt-3 space-y-1.5">
-            <div className="flex justify-between text-xs text-flora-cream/60">
+            <div className="flex justify-between text-xs text-flora-cream/60 items-baseline">
               <span>Subtotal</span>
-              <span className="font-mono">LKR {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <div className="flex items-baseline gap-0.5 font-sans">
+                <span className="text-[10px] text-[#C9962A]/70">LKR</span>
+                <span className="tabular-nums font-semibold">
+                  {subtotal.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs text-flora-cream/60">
+            <div className="flex justify-between text-xs text-flora-cream/60 items-baseline">
               <span>Delivery Charge</span>
-              <span className="font-mono">LKR 0.00</span>
+              <div className="flex items-baseline gap-0.5 font-sans">
+                <span className="text-[10px] text-[#C9962A]/70">LKR</span>
+                <span className="tabular-nums font-semibold">0.00</span>
+              </div>
             </div>
-            <div className="flex justify-between font-serif text-lg font-bold border-t border-white/10 pt-2 text-gold-400">
-              <span>Total</span>
-              <span className="font-mono">LKR {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <div className="flex justify-between border-t border-white/10 pt-2 text-gold-400 items-baseline">
+              <span className="font-serif text-lg font-bold">Total</span>
+              <span className="price-display text-lg text-gold-400 font-bold">
+                LKR {subtotal.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
 
@@ -845,15 +861,23 @@ export default function POSClient({ initialProducts }: Props) {
                 </div>
                 <div className="space-y-2">
                   {createdOrder.items.map((item: CartItem) => (
-                    <div key={item.product.id} className="grid grid-cols-12 text-[11px]">
+                    <div key={item.cartItemId || item.product.id} className="grid grid-cols-12 text-[11px]">
                       <div className="col-span-6 pr-2">
                         <p className="font-medium text-gray-800 leading-tight">{item.product.name}</p>
                         <p className="text-[9px] text-gray-400 font-mono mt-0.5">{item.product.sku}</p>
+                        {item.addons?.map((addon) => (
+                          <p key={addon.id} className="text-[9px] text-gray-500 mt-0.5 pl-2 leading-tight">
+                            ↳ {addon.name} (+LKR {addon.price.toLocaleString()})
+                          </p>
+                        ))}
                       </div>
-                      <span className="col-span-2 text-center font-mono">{item.quantity}</span>
-                      <span className="col-span-4 text-right font-mono font-semibold">
-                        LKR {(item.product.price * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </span>
+                      <span className="col-span-2 text-center font-sans tabular-nums">{item.quantity}</span>
+                      <div className="col-span-4 flex items-baseline justify-end gap-0.5 font-sans">
+                        <span className="text-[9px] text-gray-400">LKR</span>
+                        <span className="price-small text-gray-800 text-[11px]">
+                          {((item.product.price + (item.addonTotal || 0)) * item.quantity).toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -861,17 +885,27 @@ export default function POSClient({ initialProducts }: Props) {
 
               {/* Totals */}
               <div className="py-3 text-xs space-y-1.5 text-gray-700">
-                <div className="flex justify-between text-[11px]">
+                <div className="flex justify-between text-[11px] items-baseline">
                   <span>Subtotal</span>
-                  <span className="font-mono">LKR {createdOrder.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <div className="flex items-baseline gap-0.5 font-sans">
+                    <span className="text-[9px] text-gray-400">LKR</span>
+                    <span className="tabular-nums font-semibold">
+                      {createdOrder.subtotal.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-[11px]">
+                <div className="flex justify-between text-[11px] items-baseline">
                   <span>Delivery Charge</span>
-                  <span className="font-mono">LKR 0.00</span>
+                  <div className="flex items-baseline gap-0.5 font-sans">
+                    <span className="text-[9px] text-gray-400">LKR</span>
+                    <span className="tabular-nums font-semibold">0.00</span>
+                  </div>
                 </div>
-                <div className="flex justify-between font-serif text-base font-bold text-flora-brown border-t border-dashed border-gray-300 pt-2">
+                <div className="flex justify-between font-serif text-base font-bold text-flora-brown border-t border-dashed border-gray-300 pt-2 items-baseline">
                   <span>Grand Total</span>
-                  <span className="font-mono">LKR {createdOrder.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="price-display text-base text-gold-600 font-bold">
+                    LKR {createdOrder.total.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
               </div>
 
@@ -901,6 +935,10 @@ export default function POSClient({ initialProducts }: Props) {
                       name: item.product.name,
                       quantity: item.quantity,
                       unitPrice: item.product.price,
+                      order_item_addons: item.addons?.map((a: any) => ({
+                        addon_name: a.name,
+                        addon_price: a.price,
+                      })) || [],
                     })),
                     subtotal: createdOrder.subtotal,
                     deliveryCharge: 0,

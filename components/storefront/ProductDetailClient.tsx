@@ -5,17 +5,19 @@ import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
 import { createClient } from '@/lib/supabase/client';
 import StarRating from '@/components/ui/StarRating';
-import type { Product, ProductReview } from '@/types';
+import type { Product, ProductReview, ProductAddon } from '@/types';
 import Link from 'next/link';
+import ProductCustomizer from './ProductCustomizer';
 
 interface Props {
   product: Product;
   initialReviews: ProductReview[];
   relatedProducts: Product[];
   userId?: string;
+  addons: ProductAddon[];
 }
 
-export default function ProductDetailClient({ product, initialReviews, relatedProducts, userId }: Props) {
+export default function ProductDetailClient({ product, initialReviews, relatedProducts, userId, addons }: Props) {
   const { dispatch, state } = useCart();
   const inCart = state.items.find((i) => i.product.id === product.id);
   const isOutOfStock = product.quantity <= 0;
@@ -157,14 +159,7 @@ export default function ProductDetailClient({ product, initialReviews, relatedPr
             {product.description}
           </p>
 
-          <button
-            onClick={() => dispatch({ type: 'ADD_ITEM', product })}
-            disabled={isOutOfStock}
-            className="btn-gold py-4 px-8 text-lg flex items-center justify-center gap-3 w-full md:w-auto"
-          >
-            <ShoppingBag size={20} />
-            {inCart ? 'Add More to Cart' : 'Add to Cart'}
-          </button>
+          <ProductCustomizer product={product} addons={addons} />
         </div>
       </div>
 

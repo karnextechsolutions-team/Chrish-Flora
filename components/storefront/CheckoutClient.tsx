@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -8,13 +8,15 @@ import Link from 'next/link';
 import {
   ChevronDown, ChevronUp, User, MapPin, ShoppingBag,
   Sparkles, ShieldCheck, Info, Lock, Shield,
-  AlertCircle, CreditCard, Loader2
+  AlertCircle, CreditCard, Loader2, Calendar, Clock
 } from 'lucide-react';
+import { getAvailableDeliveryDates, getTimeSlotsForDate } from '@/lib/business-hours';
 import { useCart } from '@/lib/cart-context';
 import { calculateDistanceKm, calculateDeliveryCharge, reverseGeocode } from '@/lib/delivery';
 import { createClient } from '@/lib/supabase/client';
 import type { StoreSettings } from '@/types';
 import PayHereButton from './PayHereButton';
+import DeliveryCalendar from './DeliveryCalendar';
 
 const DeliveryMap = dynamic(() => import('@/components/map/DeliveryMap'), { ssr: false });
 
@@ -56,6 +58,42 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
     customer_phone: profile?.phone || '',
     order_note: '',
   });
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [customTime, setCustomTime] = useState('');
+
+  const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+
+  const selectedDateHours = selectedDate 
+    ? s.business_hours?.[DAY_KEYS[selectedDate.getDay()]]
+    : null;
+  const selectedDateOpenTime = selectedDateHours?.open || '08:00';
+  const selectedDateCloseTime = selectedDateHours?.close || '18:00';
+
+  const formatTo12Hour = (time24: string): string => {
+    if (!time24) return '';
+    const [hStr, mStr] = time24.split(':');
+    const h = parseInt(hStr, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const displayH = h % 12 === 0 ? 12 : h % 12;
+    return `${displayH.toString().padStart(2, '0')}:${mStr} ${ampm}`;
+  };
+
+  const availableDates = useMemo(() => {
+    return getAvailableDeliveryDates(s.business_hours);
+  }, [s.business_hours]);
+
+  const timeSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return getTimeSlotsForDate(selectedDate, s.business_hours);
+  }, [selectedDate, s.business_hours]);
+
+  useEffect(() => {
+    if (availableDates.length > 0 && !selectedDate) {
+      setSelectedDate(availableDates[0]);
+    }
+  }, [availableDates, selectedDate]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -132,22 +170,42 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
         status: 'Pending',
         order_note: formData.order_note || null,
         payment_method: paymentMethod,
+        requested_delivery_date: selectedDate ? selectedDate.toISOString().split('T')[0] : null,
+        requested_delivery_time: selectedTimeSlot || null,
       };
 
       const { data: order, error: orderErr } = await supabase
         .from('orders').insert(orderPayload).select().single();
       if (orderErr) throw orderErr;
 
-      const itemsPayload = state.items.map(item => ({
-        order_id: order.id,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        unit_price: item.product.price,
-      }));
-      const { error: itemsErr } = await supabase.from('order_items').insert(itemsPayload);
-      if (itemsErr) throw itemsErr;
+      // SMS handled per payment method below — nothing here
 
       for (const item of state.items) {
+        const { data: orderItem, error: itemErr } = await supabase
+          .from('order_items')
+          .insert({
+            order_id: order.id,
+            product_id: item.product.id,
+            quantity: item.quantity,
+            unit_price: item.product.price,
+          })
+          .select()
+          .single();
+        if (itemErr) throw itemErr;
+
+        if (item.addons && item.addons.length > 0) {
+          const addonPayload = item.addons.map((addon: any) => ({
+            order_item_id: orderItem.id,
+            addon_id: addon.id,
+            addon_name: addon.name,
+            addon_price: addon.price,
+          }));
+          const { error: addonErr } = await supabase
+            .from('order_item_addons')
+            .insert(addonPayload);
+          if (addonErr) throw addonErr;
+        }
+
         await supabase.rpc('decrement_stock', {
           p_product_id: item.product.id,
           p_quantity: item.quantity,
@@ -159,6 +217,25 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
         setShowPayHere(true);
         setSubmitting(false);
       } else {
+        // Send SMS notification to admin (background, non-blocking)
+        fetch('/api/notify-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId:           order.id,
+            customerName:      formData.customer_name,
+            customerPhone:     formData.customer_phone,
+            totalAmount:       total,
+            fulfillmentMethod: fulfillment,
+            paymentMethod:     'Cash on Delivery',
+            deliveryDate:      selectedDate
+              ? selectedDate.toISOString().split('T')[0]
+              : null,
+            deliveryTime:      selectedTimeSlot || null,
+          }),
+        }).catch(() => {}); // Fire-and-forget — never blocks checkout
+
+        // Clear cart and redirect customer to success page
         dispatch({ type: 'CLEAR_CART' });
         router.push(`/storefront/order-confirmation?orderId=${order.id}`);
       }
@@ -405,8 +482,13 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-serif text-lg text-gold-600 font-semibold tabular-nums">LKR {deliveryCharge.toLocaleString()}</p>
-                        <p className="text-[10px] text-flora-brown/40">Delivery charge</p>
+                        <div className="flex items-baseline justify-end gap-0.5">
+                          <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                          <span className="price-small text-gold-600 text-base leading-none">
+                            {deliveryCharge.toLocaleString('en-LK')}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-flora-brown/40 mt-1">Delivery charge</p>
                       </div>
                     </div>
                   )}
@@ -443,6 +525,115 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
                       </div>
                     </div>
                   )}
+
+                  {/* Schedule Selection Card */}
+                  <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 mt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Calendar size={16} className="text-gold-600" />
+                      <h2 className="font-sans text-sm font-bold uppercase tracking-wider text-flora-brown">
+                        {fulfillment === 'Delivery' ? 'Delivery Schedule' : 'Pickup Schedule'}
+                      </h2>
+                    </div>
+                    
+                    {/* Date Selector */}
+                    <div className="mb-4">
+                      <label className="block text-[10px] font-sans font-bold tracking-wide text-gold-600 uppercase mb-3">
+                        Select Date *
+                      </label>
+                      <DeliveryCalendar 
+                        businessHours={s.business_hours} 
+                        selectedDate={selectedDate} 
+                        onDateSelect={(date) => {
+                          setSelectedDate(date);
+                          setSelectedTimeSlot('');
+                          setCustomTime('');
+                        }} 
+                      />
+                    </div>
+                    
+                    {/* Time slots - 2 column grid */}
+                    {selectedDate && (
+                      <div className="mt-4">
+                        <label className="block text-[10px] font-sans font-bold tracking-wide text-gold-600 uppercase mb-3">
+                          Select Time Slot *
+                        </label>
+                        
+                        {timeSlots.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            {timeSlots.map(slot => (
+                              <button
+                                key={slot}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTimeSlot(slot);
+                                  setCustomTime('');
+                                }}
+                                className={`py-3 px-4 rounded-xl border-2 
+                                  text-sm font-sans font-medium transition-all
+                                  flex items-center justify-center gap-2
+                                  ${selectedTimeSlot === slot
+                                    ? 'border-gold-600 bg-gold-50 text-gold-700 font-bold'
+                                    : 'border-gray-200 bg-white text-flora-brown/70 hover:border-gold-300'
+                                  }`}
+                              >
+                                <span>🕐</span>
+                                {slot}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                            <p className="text-sm font-sans text-amber-700">
+                              No time slots available for this date.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Manual time input option */}
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <p className="text-[10px] font-sans text-flora-brown/40 uppercase tracking-wide mb-2">
+                            Or specify exact time:
+                          </p>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="time"
+                              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-sans text-sm text-flora-brown focus:outline-none focus:border-gold-500 focus:bg-white transition-all"
+                              style={{ fontSize: '16px' }}
+                              value={customTime}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setCustomTime(val);
+                                if (val) {
+                                  setSelectedTimeSlot(formatTo12Hour(val));
+                                } else {
+                                  setSelectedTimeSlot('');
+                                }
+                              }}
+                              min={selectedDateOpenTime}
+                              max={selectedDateCloseTime}
+                            />
+                            {customTime && (
+                              <button
+                                type="button"
+                                onClick={() => { 
+                                  setCustomTime(''); 
+                                  setSelectedTimeSlot(''); 
+                                }}
+                                className="text-xs text-gray-400 hover:text-gray-600"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-gray-400 font-sans mt-1">
+                            {selectedDateHours && !selectedDateHours.closed && 
+                              `Available: ${selectedDateHours.open} – ${selectedDateHours.close}`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -455,6 +646,12 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
                   onClick={() => {
                     if (fulfillment === 'Delivery' && !pin) {
                       setError('Please drop a pin on the map to set your delivery location.'); return;
+                    }
+                    if (!selectedDate) {
+                      setError('Please select a delivery/pickup date.'); return;
+                    }
+                    if (!selectedTimeSlot) {
+                      setError('Please select a delivery/pickup time slot.'); return;
                     }
                     setError(''); setCurrentStep(3);
                   }}
@@ -472,16 +669,41 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
                 <h2 className="font-serif text-2xl text-flora-brown mb-4">Confirm Order</h2>
                 <div className="space-y-3 text-sm">
-                  {[
-                    { label: 'Customer Name', value: formData.customer_name },
-                    { label: 'Phone Number', value: formData.customer_phone },
-                    { label: 'Fulfillment', value: fulfillment, gold: true },
-                  ].map(row => (
-                    <div key={row.label} className="flex justify-between border-b border-gray-100 pb-2">
-                      <span className="text-flora-brown/50">{row.label}</span>
-                      <span className={`font-semibold ${(row as any).gold ? 'text-gold-600' : ''}`}>{row.value}</span>
+                  <div className="flex justify-between border-b border-gray-100 pb-2">
+                    <span className="text-flora-brown/50">Customer Name</span>
+                    <span className="font-semibold text-flora-brown">{formData.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-100 pb-2">
+                    <span className="text-flora-brown/50">Phone Number</span>
+                    <span className="font-semibold text-flora-brown">{formData.customer_phone}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-100 pb-2">
+                    <span className="text-flora-brown/50">Fulfillment</span>
+                    <span className="font-semibold text-gold-600 uppercase">{fulfillment}</span>
+                  </div>
+                  {selectedDate && (
+                    <div className="flex justify-between border-b border-gray-100 pb-2">
+                      <span className="text-flora-brown/50">
+                        {fulfillment === 'Delivery' ? 'Delivery Date' : 'Pickup Date'}
+                      </span>
+                      <span className="font-semibold text-flora-brown">
+                        {selectedDate.toLocaleDateString('en-LK', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </span>
                     </div>
-                  ))}
+                  )}
+                  {selectedTimeSlot && (
+                    <div className="flex justify-between border-b border-gray-100 pb-2">
+                      <span className="text-flora-brown/50">Time Slot</span>
+                      <span className="font-semibold text-gold-600">
+                        🕐 {selectedTimeSlot}
+                      </span>
+                    </div>
+                  )}
                   {fulfillment === 'Delivery' && (
                     <div className="border-b border-gray-100 pb-2">
                       <span className="text-flora-brown/50 block mb-1">Delivery Address</span>
@@ -584,9 +806,9 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
                       {submitting ? (
                         <><Loader2 size={18} className="animate-spin" />{paymentMethod === 'PayHere' ? 'Creating...' : 'Placing...'}</>
                       ) : paymentMethod === 'PayHere' ? (
-                        <><CreditCard size={18} />Pay — LKR {total.toLocaleString()}</>
+                        <><CreditCard size={18} />Pay — LKR {total.toLocaleString('en-LK')}</>
                       ) : (
-                        <>💵 Place Order — LKR {total.toLocaleString()}</>
+                        <>💵 Place Order — LKR {total.toLocaleString('en-LK')}</>
                       )}
                     </button>
                   )}
@@ -619,7 +841,7 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
             className="lg:hidden w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl shadow-sm mb-4">
             <span className="font-serif text-lg text-flora-brown">Order Summary ({state.items.length})</span>
             <div className="flex items-center gap-2">
-              <span className="font-serif text-gold-600 font-bold text-lg">LKR {total.toLocaleString()}</span>
+              <span className="price-display text-gold-600 font-bold text-lg">LKR {total.toLocaleString('en-LK')}</span>
               {summaryExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </div>
           </button>
@@ -630,21 +852,33 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
 
               <div className="space-y-3.5 max-h-64 overflow-y-auto mb-5 pr-1">
                 {state.items.map(item => (
-                  <div key={item.product.id} className="flex gap-3 items-center">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-olive-50 flex-shrink-0 border border-gray-200">
-                      {item.product.image_url ? (
-                        <Image src={item.product.image_url} alt={item.product.name} width={48} height={48} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg">🌸</div>
-                      )}
+                  <div key={item.cartItemId} className="space-y-1">
+                    <div className="flex gap-3 items-center">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-olive-50 flex-shrink-0 border border-gray-200">
+                        {item.product.image_url ? (
+                          <Image src={item.product.image_url} alt={item.product.name} width={48} height={48} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-lg">🌸</div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-sans text-sm font-semibold text-flora-brown truncate">{item.product.name}</p>
+                        <p className="text-[10px] text-flora-brown/40 font-sans uppercase tracking-wider">Qty: {item.quantity}</p>
+                      </div>
+                      <div className="flex items-baseline gap-0.5 shrink-0">
+                        <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                        <span className="price-small text-gold-600">
+                          {(item.quantity * (item.itemTotal || item.product.price)).toLocaleString('en-LK')}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-sans text-sm font-semibold text-flora-brown truncate">{item.product.name}</p>
-                      <p className="text-[10px] text-flora-brown/40 font-sans uppercase tracking-wider">Qty: {item.quantity}</p>
-                    </div>
-                    <p className="font-serif text-base font-semibold text-gold-600 tabular-nums shrink-0">
-                      LKR {(item.quantity * item.product.price).toLocaleString()}
-                    </p>
+                    {item.addons?.map((addon: any) => (
+                      <div key={addon.id} 
+                        className="flex justify-between text-xs text-flora-brown/50 ml-14">
+                        <span>+ {addon.name}</span>
+                        <span className="tabular-nums">LKR {addon.price.toLocaleString('en-LK')}</span>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -652,7 +886,12 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
               <div className="border-t border-gray-100 pt-4 space-y-2.5">
                 <div className="flex justify-between text-sm font-sans text-flora-brown/70">
                   <span>Subtotal</span>
-                  <span className="tabular-nums">LKR {subtotal.toLocaleString()}</span>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                    <span className="price-small text-gold-600">
+                      {subtotal.toLocaleString('en-LK')}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex justify-between text-sm font-sans">
                   <span className="text-flora-brown/70">
@@ -664,19 +903,26 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
                         : '🚚 Delivery (drop a pin)'
                       : '🏪 Store Pickup'}
                   </span>
-                  <span className="tabular-nums font-medium">
+                  <div className="font-medium">
                     {fulfillment === 'Delivery'
                       ? deliveryCharge > 0
-                        ? <span className="text-gold-600">LKR {deliveryCharge.toLocaleString()}</span>
-                        : <span className="text-gray-400 text-xs">Set location</span>
-                      : <span className="text-green-600">FREE</span>}
-                  </span>
+                        ? (
+                          <div className="flex items-baseline gap-0.5">
+                            <span className="font-sans text-xs text-gold-600/70">LKR</span>
+                            <span className="price-small text-gold-600">
+                              {deliveryCharge.toLocaleString('en-LK')}
+                            </span>
+                          </div>
+                        )
+                        : <span className="text-gray-400 text-xs font-sans">Set location</span>
+                      : <span className="text-green-600 font-sans text-xs font-bold uppercase tracking-wider">FREE</span>}
+                  </div>
                 </div>
               </div>
 
               <div className="border-t border-gray-100 mt-4 pt-4 flex justify-between items-center">
                 <span className="font-serif text-xl text-flora-brown">Total</span>
-                <span className="font-serif text-2xl font-bold text-gold-600 tabular-nums">LKR {total.toLocaleString()}</span>
+                <span className="price-display text-2xl font-bold text-gold-600">LKR {total.toLocaleString('en-LK')}</span>
               </div>
 
               {/* Desktop CTA */}
@@ -733,7 +979,7 @@ export default function CheckoutClient({ user, profile, settings }: Props) {
         <div className="flex justify-between items-center gap-4 max-w-7xl mx-auto">
           <div>
             <span className="text-[9px] font-sans text-flora-brown/40 uppercase tracking-widest block font-bold">Total</span>
-            <span className="font-serif text-xl text-gold-600 font-bold tabular-nums">LKR {total.toLocaleString()}</span>
+            <span className="price-display text-xl text-gold-600 font-bold">LKR {total.toLocaleString('en-LK')}</span>
           </div>
           {currentStep === 1 && (
             <button onClick={() => {

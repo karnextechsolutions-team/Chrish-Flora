@@ -160,19 +160,46 @@ export default function StorefrontNav({ cartOpen, setCartOpen }: StorefrontNavPr
               <div className="relative">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-1.5 text-xs font-sans tracking-wide text-brown hover:text-gold transition-colors min-h-[40px] px-2 font-medium"
+                  className="flex items-center gap-2 text-xs font-sans tracking-wide text-brown hover:text-gold transition-colors min-h-[40px] px-2 font-medium"
                 >
-                  <User size={20} strokeWidth={1.5} />
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-olive-300 to-gold-500 text-white flex items-center justify-center font-serif text-[10px] font-bold uppercase select-none shadow-sm">
+                    {profile?.full_name ? profile.full_name.charAt(0) : <User size={12} strokeWidth={2} />}
+                  </div>
                   <span>{profile?.full_name?.split(' ')[0] || 'Account'}</span>
                 </button>
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 shadow-float py-2 z-50 rounded-xl">
-                    <div className="px-4 py-2 text-xs text-brown/40 border-b border-gray-200 mb-2">
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 shadow-lg py-2 z-50 rounded-xl">
+                    <div className="px-4 py-2 text-xs text-brown/40 border-b border-gray-100 mb-1">
                       Signed in as {profile?.full_name || 'User'}
                     </div>
+                    <Link
+                      href="/storefront/account"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center w-full text-left px-4 py-2 text-sm text-brown hover:bg-gray-50 transition-colors h-10"
+                    >
+                      Profile Overview
+                    </Link>
+                    <Link
+                      href="/storefront/account/orders"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center w-full text-left px-4 py-2 text-sm text-brown hover:bg-gray-50 transition-colors h-10"
+                    >
+                      My Orders
+                    </Link>
+                    <Link
+                      href="/storefront/account/settings"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center w-full text-left px-4 py-2 text-sm text-brown hover:bg-gray-50 transition-colors h-10"
+                    >
+                      Settings
+                    </Link>
+                    <div className="border-t border-gray-100 my-1" />
                     <button
-                      onClick={handleSignOut}
-                      className="w-full text-left px-4 py-2 text-sm text-brown hover:bg-gray-100 transition-colors h-11"
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        handleSignOut();
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors h-10 font-medium"
                     >
                       Sign Out
                     </button>

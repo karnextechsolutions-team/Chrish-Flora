@@ -25,7 +25,12 @@ export const formatPhoneForWhatsApp = (phone: string): string => {
 export const generateReceiptMessage = (receiptData: {
   orderId: string;
   customerName: string;
-  items: Array<{ name: string; quantity: number; unitPrice: number }>;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    order_item_addons?: Array<{ addon_name: string; addon_price: number }> | null;
+  }>;
   subtotal: number;
   deliveryCharge: number;
   grandTotal: number;
@@ -35,9 +40,17 @@ export const generateReceiptMessage = (receiptData: {
   dateTime: string;
 }) => {
   const itemLines = receiptData.items
-    .map(item => 
-      `  • ${item.name} × ${item.quantity} — LKR ${(item.quantity * item.unitPrice).toLocaleString()}`
-    )
+    .map(item => {
+      const addonLines = (item.order_item_addons || [])
+        .map(oa => `    ↳ ${oa.addon_name}: +LKR ${Number(oa.addon_price).toLocaleString()}`)
+        .join('\n');
+      
+      let line = `  • ${item.name} × ${item.quantity} — LKR ${(item.quantity * item.unitPrice).toLocaleString()}`;
+      if (addonLines) {
+        line += `\n${addonLines}`;
+      }
+      return line;
+    })
     .join('\n');
 
   return `🌸 *Chrish Flora* 🌸
