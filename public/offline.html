@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline — Chrish Flora</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: #C8CC7A;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 360px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .emoji { font-size: 64px; margin-bottom: 16px; }
+    h1 {
+      font-family: Georgia, serif;
+      font-size: 28px;
+      color: #3D2E00;
+      margin-bottom: 12px;
+    }
+    p {
+      color: #5C4A00;
+      opacity: 0.6;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    button {
+      background: #C9962A;
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    button:hover { background: #8B6914; }
+    .brand {
+      font-family: Georgia, serif;
+      color: #C9962A;
+      font-size: 22px;
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+    .tagline {
+      font-size: 11px;
+      color: #5C4A00;
+      opacity: 0.5;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">Chrish Flora</div>
+    <div class="tagline">Luxury Floral Boutique</div>
+    <div class="emoji">🌸</div>
+    <h1>You're Offline</h1>
+    <p>
+      No internet connection detected.
+      Please check your connection and try again.
+      Your cart items are safely saved!
+    </p>
+    <button onclick="window.location.reload()">
+      Try Again
+    </button>
+  </div>
+</body>
+</html>

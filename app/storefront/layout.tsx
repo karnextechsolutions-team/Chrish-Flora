@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import StorefrontNav from '@/components/storefront/StorefrontNav';
 import MobileBottomNav from '@/components/storefront/MobileBottomNav';
+import PWAInstallPrompt from '@/components/ui/PWAInstallPrompt';
 
 export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
   const [cartOpen, setCartOpen] = useState(false);
@@ -88,6 +89,9 @@ export default function StorefrontLayout({ children }: { children: React.ReactNo
 
         </div>
       </footer>
+
+      {/* PWA Install Prompt — appears after 5s on Android, 8s on iOS */}
+      <PWAInstallPrompt />
     </div>
   );
 }
