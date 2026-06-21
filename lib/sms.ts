@@ -41,8 +41,8 @@ Time: ${new Date().toLocaleString('en-LK', {
 export async function sendAdminSMS(data: OrderSMSData): Promise<void> {
   // Fire-and-forget: NEVER throws, NEVER blocks checkout
   try {
-    const userId    = process.env.NOTIFY_USER_ID;
-    const apiKey    = process.env.NOTIFY_API_KEY;
+    const userId = process.env.NOTIFY_USER_ID;
+    const apiKey = process.env.NOTIFY_API_KEY;
     const adminPhone = process.env.ADMIN_PHONE_NUMBER;
 
     if (!userId || !apiKey || !adminPhone) {
@@ -54,13 +54,12 @@ export async function sendAdminSMS(data: OrderSMSData): Promise<void> {
 
     // Build URL with query params (Notify.lk HTTP GET API)
     const params = new URLSearchParams({
-      user_id:   userId,
-      api_key:   apiKey,
-      sender_id: 'NotifyDemo', // Update to your registered Sender ID for production
-      to:        adminPhone,
-      message:   message,
+      user_id: userId,
+      api_key: apiKey,
+      sender_id: '',
+      to: adminPhone,
+      message: message,
     });
-
     const url = `https://app.notify.lk/api/v1/send?${params.toString()}`;
 
     // 8 second timeout
